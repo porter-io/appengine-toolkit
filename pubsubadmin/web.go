@@ -1,20 +1,11 @@
 package pubsubadmin
 
 import (
-	"github.com/gorilla/mux"
+	"golang.org/x/net/context"
 	"google.golang.org/api/pubsub/v1beta2"
-	"google.golang.org/appengine"
 	"html/template"
 	"net/http"
 )
-
-func RegisterHandler(r *mux.Router) {
-	r.HandleFunc("/", HandleIndex)
-	r.HandleFunc("/topic/create/", HandleCreateTopic)
-	r.HandleFunc("/topic/delete/", HandleDeleteTopic)
-	r.HandleFunc("/subscription/create/", HandleCreateSubscription)
-	r.HandleFunc("/subscription/delete/", HandleDeleteSubscription)
-}
 
 const pageHTML = `
 <html>
@@ -68,14 +59,13 @@ type pageContext struct {
 	Subscriptions []*pubsub.Subscription
 }
 
-func HandleIndex(w http.ResponseWriter, r *http.Request) {
-	c := appengine.NewContext(r)
-	topics, err := ListTopic(c)
+func HandleIndex(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	topics, err := ListTopic(ctx)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	subscriptions, err := ListSubscription(c)
+	subscriptions, err := ListSubscription(ctx)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -90,10 +80,10 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func HandleCreateTopic(w http.ResponseWriter, r *http.Request) {
+func HandleCreateTopic(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	topic := r.FormValue("topic")
 	if topic != "" {
-		if err := CreateTopic(appengine.NewContext(r), topic); err != nil {
+		if err := CreateTopic(ctx, topic); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -101,10 +91,10 @@ func HandleCreateTopic(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "../../", 301)
 }
 
-func HandleDeleteTopic(w http.ResponseWriter, r *http.Request) {
+func HandleDeleteTopic(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	topic := r.FormValue("topic")
 	if topic != "" {
-		if err := DeleteTopic(appengine.NewContext(r), topic); err != nil {
+		if err := DeleteTopic(ctx, topic); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -112,12 +102,12 @@ func HandleDeleteTopic(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "../../", 301)
 }
 
-func HandleCreateSubscription(w http.ResponseWriter, r *http.Request) {
+func HandleCreateSubscription(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	topic := r.FormValue("topic")
 	name := r.FormValue("name")
 	endpoint := r.FormValue("endpoint")
 	if topic != "" && name != "" && endpoint != "" {
-		if err := CreateSubscription(appengine.NewContext(r), topic, name, endpoint); err != nil {
+		if err := CreateSubscription(ctx, topic, name, endpoint); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -125,10 +115,10 @@ func HandleCreateSubscription(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "../../", 301)
 }
 
-func HandleDeleteSubscription(w http.ResponseWriter, r *http.Request) {
+func HandleDeleteSubscription(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	topic := r.FormValue("subscription")
 	if topic != "" {
-		if err := DeleteSubscription(appengine.NewContext(r), topic); err != nil {
+		if err := DeleteSubscription(ctx, topic); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}

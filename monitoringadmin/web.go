@@ -1,19 +1,12 @@
 package monitoringadmin
 
 import (
-	"github.com/gorilla/mux"
+	"golang.org/x/net/context"
 	"google.golang.org/api/cloudmonitoring/v2beta2"
-	"google.golang.org/appengine"
 	"html/template"
 	"net/http"
 	"strings"
 )
-
-func RegisterHandler(r *mux.Router) {
-	r.HandleFunc("/", HandleIndex)
-	r.HandleFunc("/metric/create/", HandleCreateTopic)
-	r.HandleFunc("/metric/delete/", HandleDeleteTopic)
-}
 
 const pageHTML = `
 <html>
@@ -59,9 +52,8 @@ const pageHTML = `
 
 var pageTemplate = template.Must(template.New("page").Parse(pageHTML))
 
-func HandleIndex(w http.ResponseWriter, r *http.Request) {
-	c := appengine.NewContext(r)
-	allMetrics, err := ListMetric(c)
+func HandleIndex(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+	allMetrics, err := ListMetric(ctx)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -81,13 +73,13 @@ func HandleIndex(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func HandleCreateTopic(w http.ResponseWriter, r *http.Request) {
+func HandleCreateTopic(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	metric := r.FormValue("metric")
 	description := r.FormValue("description")
 	metricType := r.FormValue("type")
 	valueType := r.FormValue("valuetype")
 	if metric != "" && metricType != "" && valueType != "" {
-		if err := CreateMetric(appengine.NewContext(r), metric,
+		if err := CreateMetric(ctx, metric,
 			description, metricType, valueType); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -96,10 +88,10 @@ func HandleCreateTopic(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "../../", 301)
 }
 
-func HandleDeleteTopic(w http.ResponseWriter, r *http.Request) {
+func HandleDeleteTopic(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	metric := r.FormValue("metric")
 	if metric != "" {
-		if err := DeleteMetric(appengine.NewContext(r), metric); err != nil {
+		if err := DeleteMetric(ctx, metric); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
